@@ -1,0 +1,109 @@
+You are a full-stack AI developer on Replit.  
+Build a web application called **EmpowerSoft** — an MVP of a SaaS platform for on-demand software access.  
+Use **React (Vite)** for the frontend and **Node.js with Express** for the backend API.  
+Style everything using **TailwindCSS** with a **liquid glass (frosted glass / glassmorphism)** design.  
+
+---
+
+## 🔷 PROJECT OVERVIEW
+
+EmpowerSoft is a platform that allows users to browse, purchase, and manage access to software apps by category — Mechanical, Visual Media, and IT Tools.  
+Each app can be launched, paused, resumed, or deleted, and users pre-pay for a number of active hours.
+
+---
+
+## 🧠 PAGES / ROUTES
+
+### 1. Landing Page (`/`)
+- Modern hero section with glass-like cards.
+- Show EmpowerSoft logo, slogan, and a short company description.
+- Include “Login” and “Sign Up” buttons that route to `/login` and `/signup`.
+- Add soft animation background (blur + gradient).
+
+### 2. Login & Signup (`/login`, `/signup`)
+- Simple frosted glass card for form.
+- Mock authentication (store user info locally using browser localStorage).
+- On successful login, redirect to `/dashboard`.
+
+### 3. Dashboard (`/dashboard`)
+- Glassmorphic dashboard showing list of user’s purchased apps.
+- Columns: App Name, Status (Running/Paused), Remaining Hours, Retention Days, Cost, Actions.
+- Action buttons:
+  - ▶ Launch → opens `/workspace`
+  - ⏸ Pause / Resume → toggles app state
+  - ❌ Delete → shows confirmation modal before deletion
+- Mock data for now (hardcode some purchased apps).
+- Floating “+ Get New App” button → routes to `/catalog`.
+
+### 4. App Catalog (`/catalog`)
+- Show cards grouped by categories:
+  - 🧩 Mechanical (Creo, SolidWorks)
+  - 🎬 Visual Media (Premiere Pro, Blender)
+  - 💻 IT Tools (Jupyter Notebook, Database Monitor)
+- Each card shows:
+  - App name + small image/icon
+  - Dropdown for “CPU/Memory Tier” (Low, Medium, High)
+  - Input for “Active Hours”
+  - “Get App” button → Mock purchase, add to dashboard list.
+
+### 5. Workspace (`/workspace`)
+- When user launches an app, this page opens.
+- Show an iframe or placeholder canvas that says:
+  “Workspace Active: [App Name]”
+- Add “Pause” and “Terminate” buttons.
+- Terminate brings back to Dashboard.
+
+### 6. Help & Docs (`/help`)
+- Glassmorphic cards listing:
+  - FAQs
+  - Contact Support (mock email form)
+  - Documentation link placeholders.
+
+---
+
+## 🎨 STYLE REQUIREMENTS
+
+- Use **glassmorphism / liquid glass design**:
+  - Transparent backgrounds with blur (e.g. `bg-white/10 backdrop-blur-lg`).
+  - Soft gradients (`from-cyan-500/30 to-purple-500/20`).
+  - Neon/glow hover effects.
+  - Rounded corners and subtle shadows.
+- Responsive layout (desktop + mobile).
+- TailwindCSS config should include custom colors for EmpowerSoft brand (cyan, blue, purple).
+- Use an elegant font (e.g. “Poppins” or “Inter”).
+
+---
+
+## ⚙️ BACKEND
+
+- Create `/api/apps` route:
+  - GET → list of mock apps
+  - POST → add new purchased app (store temporarily in memory or file)
+- Use Express with CORS enabled.
+- Later can connect to a database (for now use mock JSON).
+
+---
+
+## 🔐 FUNCTIONALITY (MVP)
+
+- Mock authentication using localStorage.
+- Mock app state management (Running/Paused/Terminated).
+- LocalStorage retains user apps and their remaining hours.
+- Simple state timer logic for active hours (countdown simulation).
+- Each app has:
+  - Name
+  - Category
+  - Tier (Low/Medium/High)
+  - Hours purchased
+  - Hours remaining
+  - Retention days (static for now)
+  - Status
+
+---
+
+## 🚀 DEPLOYMENT (Replit MVP)
+
+- Run backend on port 5000 and frontend on 5173 (Vite default).
+- Use concurrently to run both with a single `npm run dev`.
+- Add `"proxy": "http://localhost:5000"` in frontend `package.json`.
+- Final layout:
