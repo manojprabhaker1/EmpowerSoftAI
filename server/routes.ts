@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, purchasedAppSchema } from "@shared/schema";
 import type { User, PurchasedApp } from "@shared/schema";
+import { startJupyterInstance, stopJupyterInstance, getJupyterInstance } from "./jupyter/manager";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 // Mock app catalog data - matches client-side catalog
 const APP_CATALOG = [
@@ -176,6 +178,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
+  });
+
+  // Jupyter endpoints
+  app.post("/api/jupyter/start/:appId", async (req, res) => {
+    try {
+      const { appId } = req.params;
+      const { port, token } = await startJupyterInstance(appId);
+      res.json({ port, token, url: `http://localhost:${port}/?token=${token}` });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/jupyter/stop/:appId", async (req, res) => {
+    try {
+      const { appId } = req.params;
+      stopJupyterInstance(appId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/jupyter/status/:appId", async (req, res) => {
+    try {
+      const { appId } = req.params;
+      const instance = getJupyterInstance(appId);
+      if (instance) {
+        res.json({ 
+          running: true, 
+          port: instance.port, 
+          token: instance.token,
+          url: `http://localhost:${instance.port}/?token=${instance.token}`
+        });
+      } else {
+        res.json({ running: false });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Proxy for Jupyter - wildcard route for all Jupyter paths
+  app.use("/jupyter/:appId/*", (req, res, next) => {
+    const { appId } = req.params;
+    const instance = getJupyterInstance(appId);
+    
+    if (!instance) {
+      return res.status(404).json({ error: "Jupyter instance not found" });
+    }
+
+    const proxy = createProxyMiddleware({
+      target: `http://localhost:${instance.port}`,
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: (path) => {
+        return path.replace(`/jupyter/${appId}`, '');
+      },
+      onProxyReq: (proxyReq) => {
+        proxyReq.setHeader('Authorization', `token ${instance.token}`);
+      },
+    });
+
+    proxy(req, res, next);
   });
 
   const httpServer = createServer(app);

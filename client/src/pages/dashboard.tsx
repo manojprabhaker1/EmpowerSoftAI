@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getStoredUser, clearStoredUser } from "@/lib/auth";
-import { getPurchasedApps, updatePurchasedApp, deletePurchasedApp, getAppIcon } from "@/lib/apps";
+import { getPurchasedApps, updatePurchasedApp, deletePurchasedApp, getAppIcon, cleanupExpiredApps, roundHours } from "@/lib/apps";
 import type { PurchasedApp } from "@shared/schema";
-import { Play, Pause, Trash2, Plus, LogOut, Clock, Hourglass, Timer } from "lucide-react";
+import { Rocket, Pause, Trash2, Plus, LogOut, Clock, Hourglass, Timer, Play } from "lucide-react";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -31,8 +31,21 @@ export default function Dashboard() {
       setLocation("/login");
       return;
     }
+    cleanupExpiredApps(); // Clean up any expired apps on load
     loadApps();
   }, [user, setLocation]);
+  
+  // Periodic cleanup check
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const hadChanges = cleanupExpiredApps();
+      if (hadChanges) {
+        loadApps();
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const loadApps = () => {
     setApps(getPurchasedApps());
@@ -179,14 +192,14 @@ export default function Dashboard() {
                         <Timer className="h-3 w-3 text-white/60" />
                         <p className="text-xs uppercase tracking-wide text-white/60 font-medium">Used</p>
                       </div>
-                      <p className="text-lg font-bold text-white" data-testid={`text-used-hours-${app.id}`}>{app.usedHours}h</p>
+                      <p className="text-lg font-bold text-white" data-testid={`text-used-hours-${app.id}`}>{roundHours(app.usedHours).toFixed(2)}h</p>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Clock className="h-3 w-3 text-white/60" />
                         <p className="text-xs uppercase tracking-wide text-white/60 font-medium">Active</p>
                       </div>
-                      <p className="text-lg font-bold text-cyan-400" data-testid={`text-remaining-hours-${app.id}`}>{app.remainingActiveHours}h</p>
+                      <p className="text-lg font-bold text-cyan-400" data-testid={`text-remaining-hours-${app.id}`}>{roundHours(app.remainingActiveHours).toFixed(2)}h</p>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 mb-1">
@@ -213,7 +226,7 @@ export default function Dashboard() {
                       size="sm"
                       data-testid={`button-launch-${app.id}`}
                     >
-                      <Play className="h-4 w-4 mr-1" />
+                      <Rocket className="h-4 w-4 mr-1" />
                       Launch
                     </Button>
                     <Button

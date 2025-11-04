@@ -125,17 +125,63 @@ export function calculateCost(basePrice: number, tier: "Low" | "Medium" | "High"
   return basePrice * getTierMultiplier(tier) * hours;
 }
 
-// Hour countdown simulation
+// Round hours to 2 decimal places
+export function roundHours(hours: number): number {
+  return Math.round(hours * 100) / 100;
+}
+
+// Hour countdown simulation (consumes per minute for demo)
 export function consumeHour(app: PurchasedApp): PurchasedApp {
   if (app.remainingActiveHours > 0) {
+    const newUsedHours = roundHours(app.usedHours + (1/60)); // Consume 1 minute as fraction of hour
+    const newRemainingHours = roundHours(app.remainingActiveHours - (1/60));
+    
     return {
       ...app,
-      usedHours: app.usedHours + 1,
-      remainingActiveHours: app.remainingActiveHours - 1,
-      status: app.remainingActiveHours - 1 === 0 ? "Paused" : app.status,
+      usedHours: newUsedHours,
+      remainingActiveHours: Math.max(0, newRemainingHours),
+      status: newRemainingHours <= 0 ? "Paused" : app.status,
+      retentionStartedAt: newRemainingHours <= 0 && !app.retentionStartedAt ? Date.now() : app.retentionStartedAt,
     };
   }
   return app;
+}
+
+// Check if app should be terminated based on retention hours
+export function checkRetentionExpiry(app: PurchasedApp): { expired: boolean; shouldWarn: boolean; minutesRemaining: number } {
+  // If still has active hours or no retention started, not expired
+  if (app.remainingActiveHours > 0 || !app.retentionStartedAt) {
+    return { expired: false, shouldWarn: false, minutesRemaining: app.retentionHours * 60 };
+  }
+  
+  const retentionDurationMs = app.retentionHours * 60 * 60 * 1000; // Convert hours to ms
+  const elapsedMs = Date.now() - app.retentionStartedAt;
+  const remainingMs = retentionDurationMs - elapsedMs;
+  const minutesRemaining = Math.floor(remainingMs / 60000);
+  
+  const expired = remainingMs <= 0;
+  const shouldWarn = !app.retentionWarningSent && minutesRemaining <= 15 && minutesRemaining > 0;
+  
+  return { expired, shouldWarn, minutesRemaining: Math.max(0, minutesRemaining) };
+}
+
+// Clean up expired apps
+export function cleanupExpiredApps(): boolean {
+  const apps = getPurchasedApps();
+  let hasChanges = false;
+  const updated = apps.map(app => {
+    const { expired } = checkRetentionExpiry(app);
+    if (expired && app.status !== "Stopped") {
+      hasChanges = true;
+      return { ...app, status: "Stopped" as const };
+    }
+    return app;
+  });
+  
+  if (hasChanges) {
+    savePurchasedApps(updated);
+  }
+  return hasChanges;
 }
 
 export function getAppIcon(iconId: string): LucideIcon {
