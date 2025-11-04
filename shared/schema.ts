@@ -46,6 +46,8 @@ export interface PurchasedApp {
   cost: number;
   purchasedAt: number; // timestamp
   lastActiveAt?: number; // timestamp
+  retentionStartedAt?: number; // timestamp when retention period started
+  retentionWarningSent?: boolean; // whether 15-min warning was sent
 }
 
 export const purchasedAppSchema = z.object({
